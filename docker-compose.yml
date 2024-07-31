@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    container_name: postgresql_13
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: c88dbfa697ef83d2
+      POSTGRES_DB: freight_forwarder
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - pgarchive:/var/lib/postgresql/archive
+      - pgbackup:/var/lib/postgresql/backup
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
+  pgarchive:
+  pgbackup:
