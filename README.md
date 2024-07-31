@@ -1,6 +1,19 @@
-docker exec -it postgresql_13 bash
+# INIT
+# reset and clear docker container
+docker compose down
+docker volume rm postgresql_pgarchive
+docker volume rm postgresql_pgbackup
+docker volume rm postgresql_pgdata
+
+# build and copy data
+docker compose build
+docker compose up -d
+
+docker exec -t postgres pg_dump -U postgres -d freight_forwarder | docker exec -i postgresql_13 psql -U postgres -d freight_forwarder
+docker exec -t postgres pg_dump -U postgres -d master | docker exec -i postgresql_13 psql -U postgres -d master
 
 # create base backup
+docker exec -it postgresql_13 bash
 mkdir -p /var/lib/postgresql/backup
 pg_basebackup -D /var/lib/postgresql/backup -U postgres -h localhost -p 5432
 
@@ -8,7 +21,8 @@ ls /var/lib/postgresql/backup
 exit
 
 
-# create sample data 
+# ---------- This is an testing (could ignore) -------------------
+# create test data and notice the time needed to recover
 docker exec -it postgresql_13 bash
 psql -U postgres -d freight_forwarder
 
@@ -20,17 +34,16 @@ INSERT INTO freight_forwarder_18.cars (brand, model) VALUES ('A', 'A');
 INSERT INTO freight_forwarder_18.cars (brand, model) VALUES ('A', 'B');
 INSERT INTO freight_forwarder_18.cars (brand, model) VALUES ('C', 'C');
 
-# wait a minutes
+# wait two minutes
 
 DELETE FROM freight_forwarder_18.cars;
 exit
+# ------ end testing ------
 
-
-# restore command
-
+# Run these command when you need point in time recover the data
 docker stop postgresql_13
 
-# get directory of mount folder
+# get directory of mounted folder
 docker inspect postgresql_13 | grep -i "Source"
 
 mv /var/lib/docker/volumes/postgresql_pgdata/_data /var/lib/docker/volumes/postgresql_pgdata/_data_old
@@ -64,15 +77,3 @@ docker exec -it postgresql_13 bash
 psql -U postgres -d freight_forwarder
 SELECT pg_promote();
 SELECT pg_is_in_recovery();
-
-# reset
-# docker compose down
-# docker volume rm postgresql_pgarchive
-# docker volume rm postgresql_pgbackup
-# docker volume rm postgresql_pgdata
-
-# docker compose build
-# docker compose up -d
-
-# docker exec -t postgres pg_dump -U postgres -d freight_forwarder | docker exec -i postgresql_13 psql -U postgres -d freight_forwarder
-# docker exec -t postgres pg_dump -U postgres -d master | docker exec -i postgresql_13 psql -U postgres -d master
